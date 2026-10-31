@@ -55,7 +55,8 @@ def graphql(query, token):
 
 def fetch_stats(login, token):
     user = graphql(f"""{{ user(login: "{login}") {{
-        repositories(ownerAffiliations: OWNER, privacy: PUBLIC) {{ totalCount }}
+        repositories(ownerAffiliations: OWNER, privacy: PUBLIC, isFork: false, first: 100) {{ totalCount
+            nodes {{ name languages(first: 20) {{ edges {{ size node {{ name color }} }} }} }} }}
         contributionsCollection {{ contributionYears
             contributionCalendar {{ weeks {{ contributionDays {{ date contributionCount }} }} }} }} }} }}""", token)
 
@@ -71,7 +72,25 @@ def fetch_stats(login, token):
         "repositories": user["repositories"]["totalCount"],
         "contributions": sum(v["contributionCalendar"]["totalContributions"] for v in per_year.values()),
         "days": [[d["date"], d["contributionCount"]] for w in weeks for d in w["contributionDays"]],
+        "languages": language_shares(user["repositories"]["nodes"], skip=login),
     }
+
+
+def language_shares(repos, skip):
+    # every repo counts equally: its bytes are split into shares first, then summed
+    shares, colors = {}, {}
+    for repo in repos:
+        edges = repo["languages"]["edges"]
+        total = sum(e["size"] for e in edges)
+        if repo["name"].lower() == skip.lower() or not total:  # the profile repo is just tooling
+            continue
+        for e in edges:
+            name = e["node"]["name"]
+            shares[name] = shares.get(name, 0) + e["size"] / total
+            colors[name] = e["node"]["color"] or "#8b949e"
+    weight = sum(shares.values())
+    return [[name, colors[name], round(100 * share / weight, 1)]
+            for name, share in sorted(shares.items(), key=lambda kv: -kv[1])]
 
 
 def load_stats():
@@ -88,9 +107,9 @@ def load_stats():
 
 
 def name_font_face():
-    # SVGs in a README can't load web fonts, so embed a subset with just the name's letters
+    # SVGs in a README can't load web fonts, so embed a subset with just the letters we use
     family, weight = CONFIG["name_font"]["family"], CONFIG["name_font"]["weight"]
-    text = "".join(sorted(set(CONFIG["name"].replace(" ", ""))))
+    text = "".join(sorted(set(CONFIG["name"] + CONFIG.get("tagline", ""))))
     key = hashlib.sha1(f"{family}|{weight}|{text}".encode()).hexdigest()[:10]
     path = ASSETS / "fonts" / f"name-{key}.woff2"
     if not path.exists():
@@ -126,10 +145,22 @@ def render(theme, art, stats, font_face):
     t = THEMES[theme]
     name_lines = CONFIG["name"].split()
     name_font = CONFIG["name_font"]
-    name_size = min(80, int(290 / (0.6 * max(map(len, name_lines)))))
+    name_size = min(72, int(290 / (0.6 * max(map(len, name_lines)))))
     name_gap = name_size * 1.05
-    box_top, box_h = 130, max(150, len(name_lines) * name_gap + 50)
-    name_y = box_top + (box_h - (len(name_lines) - 1) * name_gap) / 2 + name_size * 0.35
+    # "Informatics Student '25 @ Institut Teknologi Bandung" -> two lines, split at the "@"
+    tagline = CONFIG.get("tagline", "")
+    tag_lines = [tagline[:tagline.index(" @ ")], tagline[tagline.index(" @ ") + 1:]] if " @ " in tagline \
+        else [tagline] if tagline else []
+    tag_size, tag_gap = 15, 22
+
+    # stack the name, a short divider and the tagline, centred in the bracket box
+    ascent = name_size * 0.72
+    block = ascent + (len(name_lines) - 1) * name_gap
+    if tag_lines:
+        block += 24 + 26 + (len(tag_lines) - 1) * tag_gap
+    box_top, box_h = 130, max(150, block + 66)
+    name_y = box_top + (box_h - block) / 2 + ascent
+    divider_y = name_y + (len(name_lines) - 1) * name_gap + 24
 
     art_w, art_h = (float(v) for v in re.search(r'width="([\d.]+)" height="([\d.]+)"', art).groups())
     art_x, art_y = WIDTH - 40 - art_w, (HEIGHT - art_h) / 2
@@ -154,6 +185,16 @@ def render(theme, art, stats, font_face):
     for i, line in enumerate(name_lines):
         out.append(f'<text x="214" y="{name_y + i * name_gap:.1f}" text-anchor="middle" class="name" '
                    f'font-size="{name_size}" fill="{t["text"]}">{escape(line)}</text>')
+    if tag_lines:
+        out.append(f'<rect x="198" y="{divider_y - 1:.1f}" width="32" height="2" rx="1" fill="{t["accent"]}"/>')
+    for i, line in enumerate(tag_lines):
+        # accent the class year and the "@", keep the rest quiet
+        line = escape(line)
+        line = re.sub(r"('\d\d)$", rf'<tspan fill="{t["accent"]}">\1</tspan>', line)
+        line = re.sub(r"^@", f'<tspan fill="{t["accent"]}">@</tspan>', line)
+        fill = t["text"] if i == 0 else t["muted"]
+        out.append(f'<text x="214" y="{divider_y + 26 + i * tag_gap:.1f}" text-anchor="middle" class="name" '
+                   f'font-size="{tag_size}" fill="{fill}">{line}</text>')
 
     stats_y = HEIGHT - 52
     for x, icon, value, label in [(50, ICON_REPO, stats["repositories"], "repositories"),
@@ -167,6 +208,7 @@ def render(theme, art, stats, font_face):
     return "\n".join(out) + "\n"
 
 
+SPARKLE = "M868 22 l2.2 6.8 6.8 2.2 -6.8 2.2 -2.2 6.8 -2.2 -6.8 -6.8 -2.2 6.8 -2.2Z"
 CITY_H = 280
 CITY_LEVELS = {
     "dark": ["#1a2b27", "#1d6b52", "#26a37a", "#38d39f", "#7cf5c8"],
@@ -208,8 +250,7 @@ def render_city(theme, stats):
            f'<text x="48" y="160" class="mono" font-size="44" font-weight="700" fill="{t["text"]}">{total:,}</text>',
            f'<text x="48" y="196" class="mono" font-size="15" fill="{t["muted"]}">{active} active days</text>',
            f'<text x="48" y="222" class="mono" font-size="15" fill="{t["muted"]}">Busiest day: {busiest}</text>',
-           f'<path d="M868 22 l2.2 6.8 6.8 2.2 -6.8 2.2 -2.2 6.8 -2.2 -6.8 -6.8 -2.2 6.8 -2.2Z" '
-           f'fill="{levels[4]}" opacity=".8"/>']
+           f'<path d="{SPARKLE}" fill="{levels[4]}" opacity=".8"/>']
 
     ox, oy = 345, 235
     def point(u, v, h=0):
@@ -237,6 +278,54 @@ def render_city(theme, stats):
     return "\n".join(out) + "\n"
 
 
+LANG_ROWS = 5
+
+
+def readable(hex_color, theme):
+    # lift very dark language colours on the dark card, darken very light ones on the light card
+    r, g, b = (int(hex_color[i:i + 2], 16) for i in (1, 3, 5))
+    luma = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    if theme == "dark" and luma < 90:
+        r, g, b = ((v + 255) // 2 for v in (r, g, b))
+    elif theme == "light" and luma > 170:
+        r, g, b = (v * 3 // 5 for v in (r, g, b))
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def render_languages(theme, stats):
+    t, label = THEMES[theme], CITY_LEVELS[theme][3]
+    langs = stats.get("languages") or []
+    top = langs[:LANG_ROWS]
+    height = 132 + max(len(top), 1) * 32 + 14
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{height}" '
+           f'viewBox="0 0 {WIDTH} {height}" role="img" aria-label="Language stack: '
+           + escape(", ".join(f"{n} {p:g}%" for n, _, p in top)) + '">',
+           f"<style>.mono{{font-family:{MONO}}}</style>",
+           f'<rect x="1.5" y="1.5" width="{WIDTH - 3}" height="{height - 3}" rx="14" '
+           f'fill="{t["bg"]}" stroke="{t["border"]}" stroke-width="2"/>',
+           f'<text x="48" y="58" class="mono" font-size="22" font-weight="700" fill="{t["text"]}">Language Stack</text>',
+           f'<text x="48" y="86" class="mono" font-size="13" letter-spacing="1.5" fill="{label}">'
+           "REPOSITORY-WEIGHTED TECHNOLOGIES</text>",
+           f'<path d="{SPARKLE}" fill="{CITY_LEVELS[theme][4]}" opacity=".8"/>']
+    if not top:
+        out.append(f'<text x="48" y="150" class="mono" font-size="15" fill="{t["muted"]}">No public code yet.</text>')
+
+    bar_x, bar_w = 330, WIDTH - 48 - 330
+    for i, (name, color, pct) in enumerate(top):
+        y = 132 + i * 32
+        text_color = readable(color, theme)
+        bar_color = text_color if theme == "dark" else color
+        fill = bar_w * pct / top[0][2]  # longest bar = top language
+        out.append(f'<circle cx="54" cy="{y - 5}" r="5" fill="{bar_color}"/>'
+                   f'<text x="70" y="{y}" class="mono" font-size="16" fill="{t["text"]}">{escape(name)}</text>'
+                   f'<text x="300" y="{y}" class="mono" font-size="15" text-anchor="end" fill="{text_color}">'
+                   f'{pct:.0f}%</text>'
+                   f'<rect x="{bar_x}" y="{y - 10}" width="{bar_w}" height="10" rx="5" fill="{t["border"]}" opacity=".6"/>'
+                   f'<rect x="{bar_x}" y="{y - 10}" width="{max(fill, 10):.1f}" height="10" rx="5" fill="{bar_color}"/>')
+    out.append("</svg>")
+    return "\n".join(out) + "\n"
+
+
 def read_art(style, theme):
     return (ASSETS / "art" / f"{style}-{theme}.svg").read_text(encoding="utf-8")
 
@@ -249,6 +338,7 @@ def main():
         (ASSETS / f"card-{theme}.svg").write_text(
             render(theme, read_art(style, theme), stats, font_face), encoding="utf-8")
         (ASSETS / f"city-{theme}.svg").write_text(render_city(theme, stats), encoding="utf-8")
+        (ASSETS / f"languages-{theme}.svg").write_text(render_languages(theme, stats), encoding="utf-8")
     print(f"rendered {style} cards: {stats['repositories']} repos, {stats['contributions']} contributions")
 
 
