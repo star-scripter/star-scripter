@@ -13,5 +13,12 @@
     "columns": 96,
     "halftone_cell": 7,
     "dither_scale": 2
+  },
+  "banner": {
+    "source": "assets/source3.webp",
+    "crop": [0, 380, 1920, 1020],
+    "colors": 32,
+    "saturation": 1.3,
+    "scale": 2
   }
 }

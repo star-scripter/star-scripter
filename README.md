@@ -20,4 +20,6 @@
   <img alt="Language stack across public repositories" src="assets/languages-dark.svg" width="100%">
 </picture>
 
+<img alt="" src="assets/banner.svg" width="100%">
+
 </div>
