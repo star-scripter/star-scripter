@@ -1,0 +1,4 @@
+# Local-only tooling: art generation (needs Pillow) and its source images
+scripts/
+assets/source*
+__pycache__/

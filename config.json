@@ -1,0 +1,16 @@
+{
+  "name": "jovss",
+  "name_font": { "family": "Google Sans Code", "weight": 400 },
+  "github": "star-scripter",
+  "linkedin": "jovan-nathanael",
+  "art": {
+    "style": "dither",
+    "source": "assets/source2.avif",
+    "crop": [180, 0, 640, 455],
+    "equalize": false,
+    "sharpen": 120,
+    "columns": 96,
+    "halftone_cell": 7,
+    "dither_scale": 2
+  }
+}
