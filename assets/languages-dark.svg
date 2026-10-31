@@ -1,8 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="178" viewBox="0 0 900 178" role="img" aria-label="Language stack: ">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="274" viewBox="0 0 900 274" role="img" aria-label="Language stack: GDScript 33.3%, Prolog 33.3%, JavaScript 21.8%, HTML 11.5%">
 <style>.mono{font-family:Consolas, 'SFMono-Regular', Menlo, 'DejaVu Sans Mono', monospace}</style>
-<rect x="1.5" y="1.5" width="897" height="175" rx="14" fill="#0d1117" stroke="#30363d" stroke-width="2"/>
+<rect x="1.5" y="1.5" width="897" height="271" rx="14" fill="#0d1117" stroke="#30363d" stroke-width="2"/>
 <text x="48" y="58" class="mono" font-size="22" font-weight="700" fill="#e6edf3">Language Stack</text>
 <text x="48" y="86" class="mono" font-size="13" letter-spacing="1.5" fill="#38d39f">REPOSITORY-WEIGHTED TECHNOLOGIES</text>
 <path d="M868 22 l2.2 6.8 6.8 2.2 -6.8 2.2 -2.2 6.8 -2.2 -6.8 -6.8 -2.2 6.8 -2.2Z" fill="#7cf5c8" opacity=".8"/>
-<text x="48" y="150" class="mono" font-size="15" fill="#8b949e">No public code yet.</text>
+<circle cx="54" cy="127" r="5" fill="#9aaab7"/><text x="70" y="132" class="mono" font-size="16" fill="#e6edf3">GDScript</text><text x="300" y="132" class="mono" font-size="15" text-anchor="end" fill="#9aaab7">33%</text><rect x="330" y="122" width="522" height="10" rx="5" fill="#30363d" opacity=".6"/><rect x="330" y="122" width="522.0" height="10" rx="5" fill="#9aaab7"/>
+<circle cx="54" cy="159" r="5" fill="#b9939d"/><text x="70" y="164" class="mono" font-size="16" fill="#e6edf3">Prolog</text><text x="300" y="164" class="mono" font-size="15" text-anchor="end" fill="#b9939d">33%</text><rect x="330" y="154" width="522" height="10" rx="5" fill="#30363d" opacity=".6"/><rect x="330" y="154" width="522.0" height="10" rx="5" fill="#b9939d"/>
+<circle cx="54" cy="191" r="5" fill="#f1e05a"/><text x="70" y="196" class="mono" font-size="16" fill="#e6edf3">JavaScript</text><text x="300" y="196" class="mono" font-size="15" text-anchor="end" fill="#f1e05a">22%</text><rect x="330" y="186" width="522" height="10" rx="5" fill="#30363d" opacity=".6"/><rect x="330" y="186" width="341.7" height="10" rx="5" fill="#f1e05a"/>
+<circle cx="54" cy="223" r="5" fill="#e34c26"/><text x="70" y="228" class="mono" font-size="16" fill="#e6edf3">HTML</text><text x="300" y="228" class="mono" font-size="15" text-anchor="end" fill="#e34c26">12%</text><rect x="330" y="218" width="522" height="10" rx="5" fill="#30363d" opacity=".6"/><rect x="330" y="218" width="180.3" height="10" rx="5" fill="#e34c26"/>
 </svg>
